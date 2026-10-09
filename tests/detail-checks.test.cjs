@@ -7,3 +7,24 @@ test('selects complete low entry independently of missing trend evidence',()=>{c
 test('distinguishes unknown evidence from failed conditions',()=>{const r=inspect({volume:0.5});const c=r.paths[0].checks;assert.equal(c.find(x=>x.key==='volume').status,'unmet');assert.equal(c.find(x=>x.key==='upside').status,'missing');assert.equal(c.find(x=>x.key==='business').status,'missing');});
 test('broken business blocks otherwise complete conditions',()=>{const r=inspect({...E.presets.panic,broken:'yes'});assert.equal(r.blocked,true);assert.ok(r.paths.every(x=>!x.complete));});
 test('ETF bypasses company confirmation checklist',()=>{assert.equal(inspect({},[],'DRAM').etf,true);});
+test('incomplete detail expands blockers before collapsed satisfied checks',()=>{
+ const {render}=require('../dist/detail-checks.js');
+ const host={innerHTML:'',querySelectorAll:()=>[]};
+ render(host,{...E.presets.trend,breadth:null,relative20:2,aligned:true},[],'NVDA');
+ const disclosure=host.innerHTML.indexOf('<details class="met-checks">');
+ assert.ok(disclosure>0);
+ assert.match(host.innerHTML.slice(0,disclosure),/<b>行业广度<\/b>/);
+ assert.doesNotMatch(host.innerHTML.slice(0,disclosure),/<b>SPY MA200<\/b>/);
+ assert.match(host.innerHTML.slice(disclosure),/<b>SPY MA200<\/b>/);
+});
+test('complete path expands satisfied checks and switching paths reveals blockers with their own thresholds',()=>{
+ const {render}=require('../dist/detail-checks.js');
+ const buttons=[{dataset:{path:'panic'}},{dataset:{path:'trend'}}];
+ const host={innerHTML:'',querySelectorAll:()=>buttons};let changed;
+ render(host,{...E.presets.trend,relative20:2,aligned:true,panicAligned:true},[],'NVDA',next=>changed=next);
+ assert.match(host.innerHTML,/<details class="met-checks" open>/);
+ buttons[0].onclick();
+ assert.match(host.innerHTML,/<details class="met-checks">/);
+ assert.match(host.innerHTML.slice(0,host.innerHTML.indexOf('<details class="met-checks">')),/需要 ≥ 15%/);
+ assert.match(changed,/等待：/);
+});
