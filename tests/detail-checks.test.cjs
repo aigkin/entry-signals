@@ -28,3 +28,4 @@ test('complete path expands satisfied checks and switching paths reveals blocker
  assert.match(host.innerHTML.slice(0,host.innerHTML.indexOf('<details class="met-checks">')),/需要 ≥ 15%/);
  assert.match(changed,/等待：/);
 });
+test('local-only preference is explicit at top but does not erase rule evidence',()=>{const {render}=require('../dist/detail-checks.js');const host={innerHTML:'',querySelectorAll:()=>[]};const next=render(host,{...E.presets.trend,relative20:1},[],'NVDA',null,{observeOnly:true});assert.match(host.innerHTML,/暂无建议买点 · 本地只观察/);assert.match(next,/本地只观察/);assert.match(host.innerHTML,/行业广度/);});

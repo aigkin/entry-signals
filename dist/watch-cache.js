@@ -1,5 +1,5 @@
 (function(root){
- const SYMBOLS=['MRVL','DRAM','NBIS','NVDA','ASX','INTC','AAOI'],KEY='watchlist-cache-v1',HOLDINGS='watch-holdings-v1';
+ const SYMBOLS=['MRVL','DRAM','NBIS','NVDA','ASX','INTC','AAOI'],KEY='watchlist-cache-v1',HOLDINGS='watch-holdings-v1',ONLY='watch-observe-only-v1';
  function normalize(data,now=Date.now()){
   if(!data||!Array.isArray(data.rows))return [];
   return SYMBOLS.map(symbol=>{
@@ -13,6 +13,8 @@
  function save(storage,data){try{if(data.rows?.some(r=>r.status==='ok'))storage.setItem(KEY,JSON.stringify({rows:data.rows,savedAt:new Date().toISOString()}));}catch{}}
  function holdings(storage){try{const data=JSON.parse(storage.getItem(HOLDINGS));return new Set(Array.isArray(data)?data.filter(s=>SYMBOLS.includes(s)):[]);}catch{return new Set();}}
  function saveHoldings(storage,value){try{storage.setItem(HOLDINGS,JSON.stringify([...value]));return true;}catch{return false;}}
- root.WatchCache={normalize,read,save,holdings,saveHoldings};
+ function observeOnly(storage){try{const data=JSON.parse(storage.getItem(ONLY));return new Set(Array.isArray(data)?data.filter(s=>SYMBOLS.includes(s)):[]);}catch{return new Set();}}
+ function saveObserveOnly(storage,value){try{storage.setItem(ONLY,JSON.stringify([...value].filter(s=>SYMBOLS.includes(s))));return true;}catch{return false;}}
+ root.WatchCache={observeOnly,saveObserveOnly,normalize,read,save,holdings,saveHoldings};
  if(typeof module!=='undefined')module.exports=root.WatchCache;
 })(globalThis);

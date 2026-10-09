@@ -1,5 +1,6 @@
 import './dist/price-clues.js';
 import './dist/technical-review.js';
+import {getSOXXBreadth} from './breadth.mjs';
 import {readResearch,researchValues} from './research.mjs';
 import {completedSession} from './prices.mjs';
 import {getStoredPrices,recordSnapshot} from './storage.mjs';
@@ -25,11 +26,13 @@ export async function market(symbol,env){
  values.aligned=!!(s?.status==='ok'&&sector?.status==='ok'&&spy?.status==='ok'&&s.date===sector.date&&s.date===spy.date);
  if(s?.status==='ok'&&sector?.status==='ok'&&s.date===sector.date)values.relative20=((1+s.return20/100)/(1+sector.return20/100)-1)*100;
  values.panicAligned=!!(s?.status==='ok'&&base.sources[0]?.status==='ok'&&s.date===base.sources[0].date);
- sources.push({label:'行业广度',status:'missing',message:'尚无同日完整成分股价格，趋势完整路径仍待此证据；不使用自选股比例替代。'});
+ const sectorBreadth=await getSOXXBreadth(env,sector?.status==='ok'?sector.date:null,prices);
+ if(sectorBreadth.status==='ok'&&s?.status==='ok'&&s.date===sectorBreadth.date)values.breadth=sectorBreadth.value;
+ sources.push({...sectorBreadth,status:s?.date===sectorBreadth.date?sectorBreadth.status:'missing',message:s?.date===sectorBreadth.date?sectorBreadth.message:'标的与广度日期未对齐，广度缺失。'});
  let research=null,researchStatus='missing';
  try{research=await readResearch(env,symbol);if(research){researchStatus=research.expiresOn<new Date().toISOString().slice(0,10)?'expired':'ok';Object.assign(values,researchValues(research,s?.status==='ok'?s.close:null));}}catch{researchStatus='error';}
  values.broken=values.broken||'unknown';
  sources.push({label:'我的研究记录',status:researchStatus==='ok'?'ok':researchStatus==='expired'?'stale':'missing',date:research?.asOf,source:'人工研究记录',url:research?.sourceUrl,message:researchStatus==='ok'?`截至 ${research.asOf}，有效至 ${research.expiresOn}。${research.rationale}`:researchStatus==='expired'?'研究记录已过期，请在研究页复核。':researchStatus==='error'?'研究记录暂时无法读取，未用于判断。':'尚未保存研究记录；可在研究页填写有依据的估值和经营核查。'});
- const observedAt=new Date().toISOString();sources.forEach(source=>{source.checkedAt=observedAt;});const snapshot=await recordSnapshot(env,{symbol,ruleVersion:'entry-0.2',observedAt,inputs:values,sources,result:globalThis.EntryEngine.evaluate(values)});
+ const observedAt=new Date().toISOString();sources.forEach(source=>{source.checkedAt=source.checkedAt||observedAt;});const snapshot=await recordSnapshot(env,{symbol,ruleVersion:'entry-0.2',observedAt,inputs:values,sources,result:globalThis.EntryEngine.evaluate(values)});
  return Response.json({symbol,values,sources,snapshot,researchStatus,research,technicalReview:globalThis.TechnicalReview.review(s,spy,sector),fetched_at:observedAt},{headers:{'cache-control':'private, max-age=300'}});
 }

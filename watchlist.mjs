@@ -1,5 +1,6 @@
 import './dist/price-clues.js';
 import './dist/technical-review.js';
+import {getSOXXBreadth} from './breadth.mjs';
 import {compareAndStore} from './observations.mjs';
 import {legacyMarket} from './market.mjs';
 import {readResearch,researchValues} from './research.mjs';
@@ -13,14 +14,16 @@ export async function watchlist(env){const observedAt=new Date().toISOString();c
  if(row.researchRiskUnresolved||(row.researchStatus==='ok'&&['yes','no'].includes(row.broken))||!env?.DB)return;
  try{const prior=await env.DB.prepare('SELECT data_json FROM watch_observations WHERE symbol=? AND rule_version=? ORDER BY id DESC LIMIT 1').bind(row.symbol,'watch-1').first();const data=prior?JSON.parse(prior.data_json):null;if(data&&(data.broken==='yes'||data.researchRiskUnresolved))row.researchRiskUnresolved=true;}catch{}
 }));const [spy,semi,base]=await Promise.all([getStoredPrices('SPY',env),getStoredPrices('SOXX',env),baseTask]);
+const sectorBreadth=await getSOXXBreadth(env,semi.status==='ok'?semi.date:null,rows);
 for(const row of rows){
  row.technicalReview=globalThis.TechnicalReview.review(row,spy,semi);
  row.entryValues={...base.values,...row.entryResearch,broken:row.broken,
   stock:row.status==='ok'?row.ma50:null,volume:row.status==='ok'?row.volume:null,drawdown:row.status==='ok'?row.drawdown:null,stabilize:row.status==='ok'?row.stabilize:null,
   market:spy.status==='ok'?spy.ma200:null,sector:semi.status==='ok'?semi.ma50:null,
+  breadth:sectorBreadth.status==='ok'&&row.date===sectorBreadth.date?sectorBreadth.value:null,
   relative20:row.technicalReview.indicators?.relative20??null,
   aligned:row.status==='ok'&&spy.status==='ok'&&semi.status==='ok'&&row.date===spy.date&&row.date===semi.date,
   panicAligned:row.status==='ok'&&base.sources[0]?.status==='ok'&&row.date===base.sources[0]?.date};
- row.entrySources=[base.sources[0],...[row,spy,semi].map(p=>({label:p.symbol+' 日线',symbol:p.symbol,status:p.status,date:p.date,source:p.source||'行情来源未知',checkedAt:observedAt})),{label:'行业广度',status:'missing',source:'同日 SOXX 成分股',checkedAt:observedAt},{label:'研究依据',status:row.researchStatus,date:row.researchAsOf,source:'人工研究',checkedAt:observedAt}];
+ row.entrySources=[base.sources[0],...[row,spy,semi].map(p=>({label:p.symbol+' 日线',symbol:p.symbol,status:p.status,date:p.date,source:p.source||'行情来源未知',checkedAt:observedAt})),{...sectorBreadth,status:row.date===sectorBreadth.date?sectorBreadth.status:'missing',value:row.date===sectorBreadth.date?sectorBreadth.value:null,message:row.date===sectorBreadth.date?sectorBreadth.message:'标的日线与广度日期不一致，广度缺失。'},{label:'研究依据',status:row.researchStatus,date:row.researchAsOf,source:'人工研究',checkedAt:observedAt}];
  delete row.entryResearch;
-}const changes=await compareAndStore(rows,env,observedAt);const data={...summarizeWatchlist(rows),changes};await saveWatchlistCache(env,data);return Response.json(data,{headers:{'cache-control':'no-store'}});}
+}const changes=await compareAndStore(rows,env,observedAt);const data={...summarizeWatchlist(rows),sectorBreadth,changes};await saveWatchlistCache(env,data);return Response.json(data,{headers:{'cache-control':'no-store'}});}

@@ -20,3 +20,4 @@ test('price-only labels respect excluded lower bound, included upper bound, prox
  assert.equal(pricePosition({...row,researchRiskUnresolved:true}).state,'观察');
  assert.equal(pricePosition({...row,status:'stale'}).reference.available,false);
 });
+test('observe-only survives reopening and is isolated between browser stores',()=>{const map=new Map(),a={getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)},b={getItem:()=>null};cache.saveObserveOnly(a,new Set(['NVDA','OTHER']));assert.deepEqual([...cache.observeOnly(a)],['NVDA']);assert.deepEqual([...cache.observeOnly(b)],[]);assert.equal(cache.saveObserveOnly({setItem(){throw Error()}},new Set(['NVDA'])),false);});

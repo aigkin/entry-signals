@@ -27,7 +27,7 @@ function pricePosition(r){
  const near=Math.abs(p.distancePercent)<=3;
  return {state:near?'接近':'观察',kind:near?'near':'observe',reference:p,note:p.position==='above'?'等回落至区间':'等站上区间'};
 }
-function suggestion(r,options={}){
+function baseSuggestion(r,options={}){
  const none=(blockers)=>({state:'暂无',available:false,blockers,range:null});
  if(options.cached||r.status!=='ok'||r.quality?.blocking)return none(['行情待更新']);
  if(r.symbol==='DRAM')return none(['ETF需独立规则']);
@@ -46,5 +46,6 @@ function suggestion(r,options={}){
  // Price boundaries hold other evidence fixed; touching them on another day requires a new full check.
  return {state:'建议买 · 规则满足',available:true,path:path.name,blockers:[],range:{lower,upper,lowerExclusive:true},date:r.date,note:'按当前证据计算，下限不含；下一日重新确认'};
 }
+function suggestion(r,options={}){const result=baseSuggestion(r,options);return options.observeOnly?{...result,state:'暂无',available:false,range:null,observeOnly:true,blockers:['本地只观察',...result.blockers]}:result;}
 root.WatchModel={analyze,priceReference,pricePosition,suggestion};if(typeof module!=='undefined')module.exports={analyze,priceReference,pricePosition,suggestion};
 })(globalThis);

@@ -23,3 +23,4 @@ test('cache, stale price, unresolved risks and ETF cannot emit a buy zone',()=>{
 test('missing breadth or business denies trend despite strong price',()=>{
  for(const patch of [{breadth:null},{broken:'unknown'},{broken:'yes'}])assert.equal(suggestion(row({...E.presets.trend,relative20:1,aligned:true,...patch})).available,false);
 });
+test('local only preserves blockers and price observation while suppressing a complete buy zone',()=>{const r=row({...E.presets.trend,relative20:1,aligned:true});const observed=suggestion(r,{observeOnly:true});assert.equal(observed.available,false);assert.equal(observed.range,null);assert.equal(observed.path,'trend');assert.equal(observed.blockers[0],'本地只观察');const missing=suggestion(row({...E.presets.trend,breadth:null}),{observeOnly:true});assert.ok(missing.blockers.some(x=>x.includes('行业广度')));});
