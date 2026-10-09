@@ -27,5 +27,24 @@ function pricePosition(r){
  const near=Math.abs(p.distancePercent)<=3;
  return {state:near?'接近':'观察',kind:near?'near':'observe',reference:p,note:p.position==='above'?'等回落至区间':'等站上区间'};
 }
-root.WatchModel={analyze,priceReference,pricePosition};if(typeof module!=='undefined')module.exports={analyze,priceReference,pricePosition};
+function suggestion(r,options={}){
+ const none=(blockers)=>({state:'暂无',available:false,blockers,range:null});
+ if(options.cached||r.status!=='ok'||r.quality?.blocking)return none(['行情待更新']);
+ if(r.symbol==='DRAM')return none(['ETF需独立规则']);
+ if(r.researchRiskUnresolved)return none(['历史经营风险待复核']);
+ if(!r.entryValues)return none(['完整证据待更新']);
+ if(!valid(r.close)||r.close<=0)return none(['价格缺失']);
+ const inspect=root.DetailChecks?.inspect||(typeof require==='function'?require('./detail-checks.js').inspect:null);
+ const result=inspect(r.entryValues,r.entrySources||[],r.symbol);
+ const path=result.paths.find(p=>p.complete)||result.paths.find(p=>p.name===result.selected);
+ const blockers=path.checks.filter(c=>c.status!=='met').map(c=>(c.status==='missing'?'缺 ':'未达到：')+c.label);
+ if(!path.complete)return {...none(blockers),path:path.name};
+ const d=r.entryValues,fair=r.close*(1+d.upside/100);
+ const lower=path.name==='trend'?r.close/(1+d.stock/100):r.close/(1+d.stabilize/100);
+ const upper=path.name==='trend'?Math.min(lower*1.1,fair/1.05):Math.min(r.close/(1+d.drawdown/100)*.85,fair/1.15);
+ if(!valid(lower)||!valid(upper)||lower<=0||upper<=lower||r.close<=lower||r.close>upper+1e-8)return none(['价区无法核实']);
+ // Price boundaries hold other evidence fixed; touching them on another day requires a new full check.
+ return {state:'建议买 · 规则满足',available:true,path:path.name,blockers:[],range:{lower,upper,lowerExclusive:true},date:r.date,note:'按当前证据计算，下限不含；下一日重新确认'};
+}
+root.WatchModel={analyze,priceReference,pricePosition,suggestion};if(typeof module!=='undefined')module.exports={analyze,priceReference,pricePosition,suggestion};
 })(globalThis);
