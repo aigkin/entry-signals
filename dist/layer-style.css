@@ -1,0 +1,1 @@
+.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}.layers article{padding:22px;background:#e5eff3;border:1px solid #c4d8e1;border-radius:8px}.layers h2{font-size:21px}.layers p:last-child{font-size:14px}.results .score strong{font-size:32px}.results .verdict h2{font-size:24px}@media(max-width:750px){.layers{grid-template-columns:1fr}}

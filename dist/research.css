@@ -1,0 +1,10 @@
+#view-research .research-record{margin-top:1.5rem}
+#view-research .research-record form{display:grid;gap:1rem;grid-template-columns:repeat(2,minmax(0,1fr))}
+#view-research .research-record label{display:grid;gap:.35rem;color:#46576b;font-size:.9rem}
+#view-research .research-record input,#view-research .research-record select,#view-research .research-record textarea{border:1px solid #c8d3df;border-radius:6px;padding:.6rem;background:#fff;color:#1f3348;font:inherit}
+#view-research .research-record textarea{min-height:6rem;resize:vertical}
+#view-research .research-record .research-wide{grid-column:1/-1}
+#view-research .research-record button{justify-self:start;background:#2b628e;color:white;border:0;border-radius:6px;padding:.65rem 1rem;cursor:pointer}
+#view-research .research-record .research-help{color:#68798b;font-size:.85rem}
+#view-research .research-record form p{grid-column:1/-1;margin:0;color:#46576b}
+@media(max-width:680px){#view-research .research-record form{grid-template-columns:1fr}}

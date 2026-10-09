@@ -1,0 +1,13 @@
+work/
+dist/server/
+dist/.openai/
+
+node_modules/
+.sites-runtime/
+
+.openai/hosting.json
+.env
+.env.*
+*.sqlite
+*.sqlite3
+*.db

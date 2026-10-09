@@ -1,0 +1,6 @@
+const test=require('node:test'),assert=require('node:assert/strict'),{analyze}=require('../dist/price-clues.js');
+const history=()=>Array.from({length:80},(_,i)=>({date:String(i),c:100,h:101,v:100}));
+test('trend start requires 50 closes, prior-only volume, and is not repeated',()=>{const a=history();a[60]={...a[60],c:102,v:120};a[61]={...a[61],c:103,v:150};const r=analyze(a);assert.equal(r.events.filter(e=>e.type==='trend').length,1);assert.equal(r.events[0].index,60);assert.equal(r.events[0].volume,1.2);});
+test('future bars never change historical clues',()=>{const a=history();a[60]={...a[60],c:102,v:150};assert.deepEqual(analyze(a.slice(0,65)).events,analyze(a).events.filter(e=>e.index<65));});
+test('missing volume and price discontinuity do not produce signals',()=>{const a=history();a[60]={...a[60],c:102,v:null};assert.equal(analyze(a).events.length,0);a[60]={...a[60],c:200,v:200};assert.equal(analyze(a).events.length,0);});
+test('dip matches drawdown, previous high and volume criteria',()=>{const a=history();a[60]={...a[60],c:79,h:79.5};a[61]={...a[61],c:80,h:81,v:100};const r=analyze(a);assert.equal(r.events.find(e=>e.type==='dip').index,61);assert.equal(r.points[61].drawdown,-19.999999999999996);});

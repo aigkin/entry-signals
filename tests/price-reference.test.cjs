@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),{priceReference}=require('../dist/watch-model.js');
+const r={status:'ok',close:120,ma50:20,date:'2026-10-06'};
+test('reference inverts current MA deviation and measures distance from current price',()=>{const p=priceReference(r);assert.equal(p.lower,100);assert.ok(Math.abs(p.upper-110)<1e-10);assert.equal(p.position,'above');assert.ok(Math.abs(p.distancePercent+8.333333333)<1e-7);});
+test('trend lower bound excluded and upper bound included',()=>{assert.equal(priceReference({...r,close:100,ma50:0}).position,'below');assert.equal(priceReference({...r,close:110,ma50:10}).position,'inside');});
+test('unreliable data or unresolved risk does not emit a reference price',()=>{for(const patch of [{status:'cached'},{status:'review'},{status:'stale'},{ma50:null},{ma50:-100},{close:0},{quality:{blocking:true}},{researchRiskUnresolved:true},{researchStatus:'ok',broken:'yes'}])assert.equal(priceReference({...r,...patch}).available,false);});

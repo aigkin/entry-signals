@@ -1,0 +1,8 @@
+(function(root){
+const finite=Number.isFinite,positive=n=>finite(n)&&n>0,mean=a=>a.reduce((s,n)=>s+n,0)/a.length;
+function analyze(bars){let lastDip=false,lastTrend=false;const events=[];const points=bars.map((b,i)=>{const closes=bars.slice(Math.max(0,i-49),i+1).map(x=>x.c),ma50=closes.length===50&&closes.every(positive)?mean(closes):null;const prior=bars.slice(Math.max(0,i-20),i).map(x=>x.v),avg=prior.length===20&&prior.every(x=>finite(x)&&x>=0)?mean(prior):null;const volume=avg>0&&finite(b.v)&&b.v>=0?b.v/avg:null;const highWindow=bars.slice(Math.max(0,i-59),i+1).map(x=>x.c);const drawdown=highWindow.length===60&&highWindow.every(positive)?(b.c/Math.max(...highWindow)-1)*100:null;const stock=ma50>0?(b.c/ma50-1)*100:null;const stabilize=i>0&&positive(bars[i-1].h)?(b.c/bars[i-1].h-1)*100:null;const window=bars.slice(Math.max(0,i-199),i+1),review=window.some((x,j)=>j>0&&positive(window[j-1].c)&&Math.abs(x.c/window[j-1].c-1)>.45);const valid=positive(b.c)&&!review;const dip=valid&&finite(drawdown)&&finite(stabilize)&&finite(volume)&&drawdown<=-15&&stabilize>0&&volume>=1;const trend=valid&&finite(stock)&&finite(volume)&&stock>0&&stock<=10&&volume>=1.2;
+const p={...b,index:i,ma50,volume,drawdown,stock,stabilize,dip,trend,review,dipKnown:valid&&[drawdown,stabilize,volume].every(finite),trendKnown:valid&&[stock,volume].every(finite)};
+if(dip&&!lastDip)events.push({...p,type:'dip',name:'回撤企稳'});if(trend&&!lastTrend)events.push({...p,type:'trend',name:'量价转强'});lastDip=dip;lastTrend=trend;return p;});return{points,events};
+}
+root.PriceClues={analyze};if(typeof module!=='undefined')module.exports={analyze};
+})(globalThis);

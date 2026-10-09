@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {parseNasdaqHistory,priceMetrics} from '../prices.mjs';
+const now=Date.parse('2026-09-15T08:00:00Z');
+const rows=Array.from({length:220},(_,i)=>{const d=new Date(now-(220-i)*86400000);return{date:`${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}/${d.getUTCFullYear()}`,open:'$100.00',high:'$102.00',low:'$99.00',close:'$101.00',volume:i===219?'N/A':'1,000'};});
+test('Nasdaq OHLC parser preserves missing volume without inventing it',()=>{const bars=parseNasdaqHistory({data:{symbol:'SPY',tradesTable:{rows}}},'SPY',now);assert.equal(bars.length,220);assert.equal(bars.at(-1).v,null);const p=priceMetrics(bars,now);assert.equal(p.ma200,0);assert.equal(p.volume,null);});
+test('wrong symbol and empty source cannot become usable prices',()=>{assert.throws(()=>parseNasdaqHistory({data:{symbol:'NVDA',tradesTable:{rows}}},'SPY',now));assert.throws(()=>parseNasdaqHistory({data:null},'SPY',now));});

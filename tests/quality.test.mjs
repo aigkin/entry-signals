@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {auditPrices} from '../quality.mjs';import {priceMetrics} from '../prices.mjs';
+const now=Date.parse('2026-10-07T12:00:00Z');
+const bars=Array.from({length:60},(_,i)=>({date:new Date(now-(60-i)*86400000).toISOString().slice(0,10),o:100,h:102,l:99,c:101,v:1000}));
+test('jump and long gap identify exact dates without declaring a split',()=>{const data=bars.map(x=>({...x}));data[59].c=202;data[59].date='2026-10-20';const q=auditPrices(data,now);assert.equal(q.blocking,true);assert.equal(q.jumps[0].change,100);assert.equal(q.jumps[0].date,'2026-10-20');assert.equal(q.gaps.length,1);assert.match(q.reasons[0],/原因未确认/);});
+test('missing or zero recent volume blocks; old missing volume does not',()=>{assert.equal(auditPrices(bars,now).blocking,false);const data=bars.map(x=>({...x}));data[0].v=null;assert.equal(auditPrices(data,now).blocking,false);data[59].v=0;assert.equal(auditPrices(data,now).missingVolume,1);assert.equal(auditPrices(data,now).blocking,true);});
+test('short or absent data stays unknown without metric crashes',()=>{assert.equal(priceMetrics([]).count,0);assert.equal(priceMetrics(bars.slice(0,3)).stale,true);assert.match(auditPrices([],now).reasons.join(' '),/历史不足/);});
